@@ -1,7 +1,7 @@
 // VirtualMemoryManager.cpp : Defines the entry point for the console application.
 //
 
-#include "stdafx.h"
+//#include "stdafx.h"
 #include <iostream>
 #include <string>
 #include <fstream>
@@ -52,10 +52,19 @@ typedef struct {
 	unsigned int next_tlb_ptr;
 } tlb;
 
+typedef struct {
+	frame_t page[PAGE_SIZE];
+} page;
+typedef struct {
+	page page_table[NUM_PAGES];
+} pageTable;
 //Functions
 int logicAdrrLoader(char * fileName, int * logicAddrList);
 int extractLogicAddr(laddress_t address, page_t * pageNum, offset_t * offset);
-
+int searchTLB(page_t * pageNum, bool * isTlbHit, frame_t * frameNum);
+int searchPageTable(bool * isTlbHit, page_t pageNum, bool * isPageFault, frame_t * frameNum);
+// NEEDS TO ALSO PASS IN PHYSICAL MEMORY BUT I DONT KNOW WHAT THAT MEANS
+int handlePageFault(page_t pageNum, pageTable * pagetable, tlb * tlbUsed);
 int main()
 {
 	ifstream myfile("Text.txt");
