@@ -54,7 +54,7 @@ typedef struct {
 
 //Functions
 int logicAdrrLoader(char * fileName, int * logicAddrList);
-
+int extractLogicAddr(laddress_t address, page_t * pageNum, offset_t * offset);
 
 int main()
 {
@@ -78,3 +78,7 @@ int logicAdrrLoader(char * fileName, laddress_t * logicAddrList) {
 	return 0;
 
 }
+int extractLogicAddr(laddress_t address, page_t * pageNum, offset_t * offset) {
+	return 0;
+}
+
