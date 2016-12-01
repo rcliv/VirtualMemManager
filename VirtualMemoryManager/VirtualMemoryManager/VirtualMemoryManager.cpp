@@ -55,9 +55,11 @@ typedef struct {
 typedef struct {
 	frame_t page[PAGE_SIZE];
 } page;
+
 typedef struct {
 	page page_table[NUM_PAGES];
 } pageTable;
+
 //Functions
 int logicAdrrLoader(char * fileName, int * logicAddrList);
 int extractLogicAddr(laddress_t address, page_t * pageNum, offset_t * offset);
@@ -65,6 +67,7 @@ int searchTLB(page_t * pageNum, bool * isTlbHit, frame_t * frameNum);
 int searchPageTable(bool * isTlbHit, page_t pageNum, bool * isPageFault, frame_t * frameNum);
 // NEEDS TO ALSO PASS IN PHYSICAL MEMORY BUT I DONT KNOW WHAT THAT MEANS
 int handlePageFault(page_t pageNum, pageTable * pagetable, tlb * tlbUsed);
+
 int main()
 {
 	ifstream myfile("Text.txt");
@@ -90,4 +93,32 @@ int logicAdrrLoader(char * fileName, laddress_t * logicAddrList) {
 int extractLogicAddr(laddress_t address, page_t * pageNum, offset_t * offset) {
 	return 0;
 }
+
+
+
+// TLB functions
+int TLB_init(tlb *tlb) {
+    unsigned int i;
+    for (i = 0; i < TLB_SIZE; i++)
+        tlb->tlb_entry[i].valid = false;
+    return 0;
+}
+
+int TLB_display(tlb_t tlb) {
+    unsigned int i;
+    
+    for (i = 0; i < TLB_SIZE; i++) {
+        printf("TLB entry " + i + ", page num: " + tlb.tlb_entry[i].pageNum 
+        	+ ", frame num: " + tlb.tlb_entry[i].frameNum);
+        if (tlb.tlb_entry[i].valid == FALSE)
+            printf("Invalid\n");
+        else printf("Valide\n");
+    }
+    
+    return 0;
+}
+
+
+
+
 
