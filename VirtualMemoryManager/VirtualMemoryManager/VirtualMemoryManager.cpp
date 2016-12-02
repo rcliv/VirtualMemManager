@@ -29,6 +29,8 @@ typedef unsigned int frame_t;
 typedef unsigned int offset_t;
 typedef unsigned int laddress_t;
 typedef unsigned int paddress_t;
+typedef char physical_memory_t[NUM_FRAMES][PAGE_SIZE];
+
 
 /*
  * In C language, there is no binary format in printf
@@ -54,14 +56,15 @@ typedef struct {
     unsigned int next_tlb_ptr;
 } tlb;
 
-typedef frame_t page_table[NUM_PAGES];
+typedef frame_t pageTable[NUM_PAGES];
 
 //Functions
 
 int searchTLB(page_t * pageNum, bool * isTlbHit, frame_t * frameNum, tlb * tlbSearch);
 int searchPageTable(bool * isTlbHit, page_t pageNum, bool * isPageFault, frame_t * frameNum, pageTable * page_Table);
 // NEEDS TO ALSO PASS IN PHYSICAL MEMORY BUT I DONT KNOW WHAT THAT MEANS
-int handlePageFault(page_t pageNum, page_table * pagetable, tlb * tlbUsed);
+int handlePageFault(page_t pageNum, pageTable * pagetable, tlb * tlbUsed);
+int load_frame_to_physical_memory(page_t pageNum, const char *backingStoreFileName, physical_memory_t physical_memory, frame_t *frameNum);
 
 int main()
 {
@@ -123,7 +126,7 @@ int extractLogicAddr(laddress_t address, page_t * pageNum, offset_t * offset) {
 }
 
 // Page Table Initialization
-int init_page_table(page_table pageTable){
+int init_page_table(pageTable pageTable){
     for (int i = 0; i < NUM_PAGES; i++) {
         pageTable[i] = NULL;
     }
@@ -137,43 +140,38 @@ int TLB_init(tlb *tlb) {
         tlb->tlb_entry[i].valid = false;
     return 0;
 }
+
 int searchTLB(page_t * pageNum, bool * isTlbHit, frame_t * frameNum, tlb * tlbSearch) {
-	for(int i = 0; i < TLB_SIZE; i++) {
-		if(tlbSearch->tlb_entry[i].pageNum == *pageNum) {
-			*isTlbHit = true;
-			*frameNum = tlbSearch->tlb_entry[i].frameNum;
-			return 0;
-		}
-	}
-	isTlbHit = false;
-	return 0;
+    for(int i = 0; i < TLB_SIZE; i++) {
+        if(tlbSearch->tlb_entry[i].pageNum == *pageNum) {
+            *isTlbHit = true;
+            *frameNum = tlbSearch->tlb_entry[i].frameNum;
+            return 0;
+        }
+    }
+    *isTlbHit = false;
+    return 0;
 }
+
 int searchPageTable(bool * isTlbHit, page_t pageNum, bool * isPageFault, frame_t * frameNum, pageTable* page_Table) {
-	if(!isTlbHit) {
-		if(*(page_Table + pageNum) == NULL) {
-			*isPageFault = true;
-		}
-		else {
-			*frameNum = page_Table[pageNum];
-		}
-	}
-	return 0;
+    if(!isTlbHit) {
+        if(*(page_Table + pageNum) == NULL) {
+            *isPageFault = true;
+        }
+        else {
+            *frameNum = *page_Table[pageNum];
+        }
+    }
+    return 0;
 }
+
 int TLB_display(tlb * tlb) {
-    unsigned int i;
-    
-    for (i = 0; i < TLB_SIZE; i++) {
-        printf("TLB entry " + i + ", page num: " + tlb.tlb_entry[i].pageNum 
-        	+ ", frame num: " + tlb.tlb_entry[i].frameNum);
-        if (tlb.tlb_entry[i].valid == FALSE)
-            printf("Invalid\n");
+    for (int i = 0; i < TLB_SIZE; i++) {
+        cout << "TLB entry " << i << ", page num: " << tlb->tlb_entry[i].pageNum
+        << ", frame num: " << tlb->tlb_entry[i].frameNum;
+        if (tlb->tlb_entry[i].valid == false)             printf("Invalid\n");
         else printf("Valide\n");
     }
     
     return 0;
 }
-
-
-
-
-
