@@ -57,10 +57,9 @@ typedef struct {
 typedef frame_t page_table[NUM_PAGES];
 
 //Functions
-int logicAdrrLoader(char * fileName, int * logicAddrList);
-int extractLogicAddr(laddress_t address, page_t * pageNum, offset_t * offset);
-int searchTLB(page_t * pageNum, bool * isTlbHit, frame_t * frameNum);
-int searchPageTable(bool * isTlbHit, page_t pageNum, bool * isPageFault, frame_t * frameNum);
+
+int searchTLB(page_t * pageNum, bool * isTlbHit, frame_t * frameNum, tlb * tlbSearch);
+int searchPageTable(bool * isTlbHit, page_t pageNum, bool * isPageFault, frame_t * frameNum, pageTable * page_Table);
 // NEEDS TO ALSO PASS IN PHYSICAL MEMORY BUT I DONT KNOW WHAT THAT MEANS
 int handlePageFault(page_t pageNum, page_table * pagetable, tlb * tlbUsed);
 
@@ -138,12 +137,35 @@ int TLB_init(tlb *tlb) {
         tlb->tlb_entry[i].valid = false;
     return 0;
 }
-
-int TLB_display(tlb tlb) {
-    for (int i = 0; i < TLB_SIZE; i++) {
-        cout << "TLB entry " << i << ", page num: " << tlb.tlb_entry[i].pageNum
-             << ", frame num: " << tlb.tlb_entry[i].frameNum;
-        if (tlb.tlb_entry[i].valid == false)
+int searchTLB(page_t * pageNum, bool * isTlbHit, frame_t * frameNum, tlb * tlbSearch) {
+	for(int i = 0; i < TLB_SIZE; i++) {
+		if(tlbSearch->tlb_entry[i].pageNum == *pageNum) {
+			*isTlbHit = true;
+			*frameNum = tlbSearch->tlb_entry[i].frameNum;
+			return 0;
+		}
+	}
+	isTlbHit = false;
+	return 0;
+}
+int searchPageTable(bool * isTlbHit, page_t pageNum, bool * isPageFault, frame_t * frameNum, pageTable* page_Table) {
+	if(!isTlbHit) {
+		if(*(page_Table + pageNum) == NULL) {
+			*isPageFault = true;
+		}
+		else {
+			*frameNum = page_Table[pageNum];
+		}
+	}
+	return 0;
+}
+int TLB_display(tlb * tlb) {
+    unsigned int i;
+    
+    for (i = 0; i < TLB_SIZE; i++) {
+        printf("TLB entry " + i + ", page num: " + tlb.tlb_entry[i].pageNum 
+        	+ ", frame num: " + tlb.tlb_entry[i].frameNum);
+        if (tlb.tlb_entry[i].valid == FALSE)
             printf("Invalid\n");
         else printf("Valide\n");
     }
