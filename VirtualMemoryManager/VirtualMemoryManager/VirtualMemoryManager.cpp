@@ -6,6 +6,8 @@
 #include <string>
 #include <fstream>
 #include <sstream>
+#include <vector>
+#include <cstdlib>
 
 using namespace std;
 /* offset is used to address the location within a page */
@@ -30,6 +32,8 @@ typedef unsigned int offset_t;
 typedef unsigned int laddress_t;
 typedef unsigned int paddress_t;
 typedef char physical_memory_t[NUM_FRAMES][PAGE_SIZE];
+typedef vector<laddress_t> logicAddressList_t;
+typedef vector<paddress_t> physAddressList_t;
 
 
 /*
@@ -56,14 +60,17 @@ typedef struct {
     unsigned int next_tlb_ptr;
 } tlb;
 
-typedef frame_t pageTable[NUM_PAGES];
+typedef frame_t pageTable_t[NUM_PAGES];
 
 //Functions
 
+int logicAdrrLoader(string fileName, vector<laddress_t> * logicAddrList);
+int initPageTable(pageTable_t pageTable);
+int TLB_init(tlb *tlb);
 int searchTLB(page_t * pageNum, bool * isTlbHit, frame_t * frameNum, tlb * tlbSearch);
-int searchPageTable(bool * isTlbHit, page_t pageNum, bool * isPageFault, frame_t * frameNum, pageTable * page_Table);
+int searchPageTable(bool * isTlbHit, page_t pageNum, bool * isPageFault, frame_t * frameNum, pageTable_t* page_Table);
 // NEEDS TO ALSO PASS IN PHYSICAL MEMORY BUT I DONT KNOW WHAT THAT MEANS
-int handlePageFault(page_t pageNum, pageTable * pagetable, tlb * tlbUsed);
+int handlePageFault(page_t pageNum, pageTable_t * pagetable, tlb * tlbUsed);
 int load_frame_to_physical_memory(page_t pageNum, const char *backingStoreFileName, physical_memory_t physical_memory, frame_t *frameNum);
 
 int main()
@@ -99,8 +106,37 @@ int main()
         
     }
     
+    page_t pageNum;
+    frame_t frameNum;
+    offset_t offset;
     
+    // Addresses
+    laddress_t logicAddress;
+    paddress_t physicalAddress;
     
+    /* The TLB and page table */
+    tlb* tlb;
+    pageTable_t pageTable;
+    
+    /* Simulated main memory */
+    physical_memory_t physical_memory;
+    
+    // Address Lists
+    physAddressList_t* physAddressList;
+    logicAddressList_t* logicAddressList;
+    
+    // File Names
+    const char input_file[] = "InputFile.txt";
+    const char backing_store_file_name[] = "BACKING_STORE";
+    
+    // Initialize the tlb and page table
+    TLB_init(tlb);
+    initPageTable(pageTable);
+    
+    // Load the logical addresses from the test file
+    int count = logicAdrrLoader(input_file, logicAddressList);
+    
+    // Dont know what this is for vv lol
     ifstream myfile("Text.txt");
     int32_t a, masked;
     int32_t mask;
@@ -111,22 +147,37 @@ int main()
         masked = a & mask;
         printf("\nMasked: %d", masked);
     }
-    
     myfile.close();
+    // ^^^^^^^^^^^^^^^^^^^^^^^^^
+
     return 0;
 }
 
-int logicAdrrLoader(char * fileName, laddress_t * logicAddrList) {
+int logicAdrrLoader(string fileName, vector<laddress_t> * logicAddrList) {
+    int count = 0;
+    ifstream instream(fileName);
+    instream.open(fileName);
+    if(instream.fail()){
+        cout << "File failed to open.";
+        exit(1);
+    }
     
-    return 0;
-    
+    unsigned int nextLogicAddr;
+    while (!instream.eof()) {
+        instream >> nextLogicAddr;
+        logicAddrList->push_back(nextLogicAddr);
+        count++;
+    }
+    instream.close();
+    return count;
 }
+
 int extractLogicAddr(laddress_t address, page_t * pageNum, offset_t * offset) {
     return 0;
 }
 
 // Page Table Initialization
-int init_page_table(pageTable pageTable){
+int initPageTable(pageTable_t pageTable) {
     for (int i = 0; i < NUM_PAGES; i++) {
         pageTable[i] = NULL;
     }
@@ -153,7 +204,7 @@ int searchTLB(page_t * pageNum, bool * isTlbHit, frame_t * frameNum, tlb * tlbSe
     return 0;
 }
 
-int searchPageTable(bool * isTlbHit, page_t pageNum, bool * isPageFault, frame_t * frameNum, pageTable* page_Table) {
+int searchPageTable(bool * isTlbHit, page_t pageNum, bool * isPageFault, frame_t * frameNum, pageTable_t* page_Table) {
     if(!isTlbHit) {
         if(*(page_Table + pageNum) == NULL) {
             *isPageFault = true;
@@ -175,3 +226,39 @@ int TLB_display(tlb * tlb) {
     
     return 0;
 }
+
+// Loading from backingstore
+int load_frame_to_physical_memory(page_t pageNum, const char *backingStoreFileName, physical_memory_t physical_memory, frame_t *frameNum) {
+    FILE *file = fopen(backingStoreFileName, "r");
+    fpos_t pos;
+    char one_byte;
+    
+    if (file == 0 ) {
+        printf( "Could not open file: %s.\n", backingStoreFileName);
+    }
+    
+    else {
+        fseek(file, pageNum, SEEK_SET);
+        fgetpos(file, &pos);
+        frame_t frame;
+        for (frame = 0; frame < 256; frame++) {
+            if(physical_memory[frame] != NULL){
+                break;
+            }
+        }
+        
+        for (int i = 0; i < 256; i++) {
+            fread(&one_byte, 1, 1, file);
+            physical_memory[frame][i] = one_byte;
+        }
+        
+        fclose( file );
+        frameNum = &frame;
+    }
+    return 0;
+}
+
+
+
+
+
