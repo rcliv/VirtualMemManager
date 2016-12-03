@@ -18,6 +18,7 @@ using namespace std;
 #define NUM_PAGES 256
 #define NUM_FRAMES 256
 #define PAGE_SIZE 256
+#define FRAME_SIZE 256
 #define TLB_SIZE 16
 #define LOGIC_ADDR_LIST_SIZE 1024
 
@@ -38,10 +39,10 @@ typedef vector<paddress_t> physAddressList_t;
 
 
 /*
- * In C language, there is no binary format in printf
- * You must implement the following functions to print binary format
- * itob16() and itob8() are modified from itob() by Xiao Qin.
- */
+* In C language, there is no binary format in printf
+* You must implement the following functions to print binary format
+* itob16() and itob8() are modified from itob() by Xiao Qin.
+*/
 char *itob(int x);
 char *itob16(int x);
 char *itob8(int x);
@@ -66,6 +67,7 @@ typedef frame_t pageTable_t[NUM_PAGES];
 //Functions
 
 int logicAdrrLoader(string fileName, vector<laddress_t> * logicAddrList);
+int extractLogicAddr(laddress_t address, page_t * pageNum, offset_t * offset);
 int initPageTable(pageTable_t pageTable);
 int TLB_init(tlb *tlb);
 int searchTLB(page_t * pageNum, bool * isTlbHit, frame_t * frameNum, tlb * tlbSearch);
@@ -73,6 +75,9 @@ int searchPageTable(page_t pageNum, bool * isPageFault, frame_t * frameNum, page
 // NEEDS TO ALSO PASS IN PHYSICAL MEMORY BUT I DONT KNOW WHAT THAT MEANS
 int handlePageFault(page_t pageNum, pageTable_t * pagetable, tlb * tlbUsed);
 int load_frame_to_physical_memory(page_t pageNum, const char *backingStoreFileName, physical_memory_t physical_memory, frame_t *frameNum);
+int createPhysicalAddress(frame_t f_num, offset_t off, paddress_t *physical_addr);
+
+
 
 int main()
 {
@@ -115,11 +120,15 @@ int main()
 	laddress_t logicAddress;
 	paddress_t physicalAddress;
 
-	/* The TLB and page table */
+	// The TLB and page table
 	tlb tlb;
 	pageTable_t pageTable;
 
-	/* Simulated main memory */
+	// Flags to keep track of TLB and page faults
+	bool tlbHit;
+	bool pageFault;
+
+	// Simulated main memory
 	physical_memory_t physical_memory;
 
 	// Address Lists
@@ -137,7 +146,50 @@ int main()
 	// Load the logical addresses from the test file
 	int count = logicAdrrLoader(input_file, &logicAddressList);
 
+	for (int i = 0; i < count; i++) {
+		// Get a logical address, its pageNum, and offset
+		extractLogicAddr(logicAddressList[i], &pageNum, &offset);
 
+		// Search the TLB
+		searchTLB(&pageNum, &tlbHit, &frameNum, &tlb);
+
+		if (tlbHit == true) {
+			createPhysicalAddress(frameNum, offset, &physicalAddress);
+		}
+
+		// TLB miss
+		else {
+			searchPageTable(pageNum, &pageFault, &frameNum, &pageTable);
+
+			// page hit
+			if (pageFault == false) {
+				// createPhysicalAddress(frameNum, offset, &physicalAddress);
+
+				// TLB replacement methods
+				if (FIFO == true) {
+					// TLB_replacement_FIFO(page_num, frame_num, &sys_tlb);
+				}
+				else {
+					// TLB_replacement_LRU(page_num, frame_num, &sys_tlb);
+				}
+			}
+
+			// Page Fault
+			else {
+				// page_fault_handler(page_num, frame_num, &physical_memory, &page_table, &sys_tlb);
+				// createPhysicalAddress(frameNum, offset, &physicalAddress);
+			}
+		} // End of TLB Miss
+
+		  // Read one-byte value from the physical memory
+		  // read_physical_memory(physical_address,physical_memory, &value);
+
+		  // Update the address-value list
+		  // update_address_value_list(logic_address, physical_address, value, address_value_list);
+	} // End of logicAddrList
+
+	  // Output the address-value list into an output file
+	  // output_address_value_list(output_file, address_value_list);
 
 	return 0;
 }
@@ -246,6 +298,10 @@ int load_frame_to_physical_memory(page_t pageNum, const char *backingStoreFileNa
 	return 0;
 }
 
+int createPhysicalAddress(frame_t f_num, offset_t off, paddress_t *physical_addr) {
+	*physical_addr = f_num * FRAME_SIZE + off;
+	return 0;
+}
 
 
 
