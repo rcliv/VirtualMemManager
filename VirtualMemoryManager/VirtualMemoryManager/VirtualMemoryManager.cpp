@@ -14,6 +14,7 @@ using namespace std;
 /* mask is used to extract the offset from a logical address */
 #define OFFSET_MASK 0xFF
 
+#define EMPTY_PAGE 3435973836
 #define NUM_PAGES 256
 #define NUM_FRAMES 256
 #define PAGE_SIZE 256
@@ -54,7 +55,6 @@ typedef struct {
     page_t pageNum;
     frame_t frameNum;
     bool valid;
-    unsigned int age;
 } tlbEntry;
 
 typedef struct {
@@ -62,6 +62,12 @@ typedef struct {
     unsigned int next_tlb_ptr;
 } tlb;
 
+typedef struct {
+	char page[PAGE_SIZE];
+	bool valid;
+} frame;
+
+typedef frame physical_memory_t[NUM_FRAMES];
 typedef frame_t pageTable_t[NUM_PAGES];
 
 //Functions
@@ -70,10 +76,13 @@ int logicAdrrLoader(string fileName, vector<laddress_t> * logicAddrList);
 int extractLogicAddr(laddress_t address, page_t * pageNum, offset_t * offset);
 int initPageTable(pageTable_t pageTable);
 int TLB_init(tlb *tlb);
+int PhsyMemInit(physical_memory_t physicalMemory);
 int searchTLB(page_t * pageNum, bool * isTlbHit, frame_t * frameNum, tlb * tlbSearch);
 int searchPageTable(page_t pageNum, bool * isPageFault, frame_t * frameNum, pageTable_t* page_Table);
+int searchPageTable(page_t pageNum, bool * isPageFault, frame_t * frameNum, pageTable_t page_Table);
 // NEEDS TO ALSO PASS IN PHYSICAL MEMORY BUT I DONT KNOW WHAT THAT MEANS
 int handlePageFault(page_t pageNum, pageTable_t * pagetable, tlb * tlbUsed);
+int handlePageFault(page_t p_num, frame_t *frame_num, physical_memory_t physical_mem, pageTable_t p_table, tlb tlb);
 int load_frame_to_physical_memory(page_t pageNum, const char *backingStoreFileName, physical_memory_t physical_memory, frame_t *frameNum);
 int createPhysicalAddress(frame_t f_num, offset_t off, paddress_t *physical_addr);
 int TLB_replacement_FIFO(page_t pageNum, frame_t frameNum, tlb *tlb);
