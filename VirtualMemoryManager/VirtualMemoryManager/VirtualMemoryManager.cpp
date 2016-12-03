@@ -234,6 +234,7 @@ int TLB_init(tlb *tlb) {
     tlb->next_tlb_ptr = 0;
     for (i = 0; i < TLB_SIZE; i++)
         tlb->tlb_entry[i].valid = false;
+        tlb->tlb_entry[i].age = 0;
     return 0;
 }
 
@@ -242,6 +243,7 @@ int searchTLB(page_t * pageNum, bool * isTlbHit, frame_t * frameNum, tlb * tlbSe
         if (tlbSearch->tlb_entry[i].pageNum == *pageNum) {
             *isTlbHit = true;
             *frameNum = tlbSearch->tlb_entry[i].frameNum;
+            tlbSearch->tlb_entry[i].age = 0;
             return 0;
         }
     }
@@ -327,6 +329,41 @@ int TLB_replacement_FIFO(page_t pageNum, frame_t frameNum, tlb *tlb) {
     else {
         tlb->next_tlb_ptr++;
     }
+    return 0;
+}
+
+int TLB_replacement_LRU(page_t pageNum, frame_t frameNum, tlb *tlb) {
+    for (int i = 0; i < TLB_SIZE; i++) {
+        // If the tlb isn't full yet
+        if (tlb->tlb_entry[i].valid == false) {
+            tlb->tlb_entry[i].pageNum = pageNum;
+            tlb->tlb_entry[i].frameNum = frameNum;
+            tlb->tlb_entry[i].valid = true;
+            return 0;
+        }
+    }
+    
+    // Increment all ages
+    for (int i = 0; i < TLB_SIZE; i++) {
+        tlb->tlb_entry[i].age++;
+    }
+    
+    // Find the oldest tlb
+    int oldestAge = 0;
+    int oldestIndex = 0;
+    for (int i = 0; i < TLB_SIZE; i++) {
+        if (oldestAge < tlb->tlb_entry[i].age) {
+            oldestAge = tlb->tlb_entry[i].age;
+            oldestIndex = i;
+        }
+    }
+    
+    // Replace the oldest tlb
+    tlb->tlb_entry[oldestIndex].pageNum = pageNum;
+    tlb->tlb_entry[oldestIndex].frameNum = frameNum;
+    tlb->tlb_entry[oldestIndex].age = 0;
+    tlb->tlb_entry[oldestIndex].valid = true;
+    
     return 0;
 }
 
