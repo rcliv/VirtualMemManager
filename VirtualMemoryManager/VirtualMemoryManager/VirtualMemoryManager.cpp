@@ -239,6 +239,11 @@ int TLB_init(tlb *tlb) {
 }
 
 int searchTLB(page_t * pageNum, bool * isTlbHit, frame_t * frameNum, tlb * tlbSearch) {
+    // Increment all ages
+    for (int i = 0; i < TLB_SIZE; i++) {
+        tlb->tlb_entry[i].age++;
+    }
+
     for (int i = 0; i < TLB_SIZE; i++) {
         if (tlbSearch->tlb_entry[i].pageNum == *pageNum) {
             *isTlbHit = true;
@@ -341,11 +346,6 @@ int TLB_replacement_LRU(page_t pageNum, frame_t frameNum, tlb *tlb) {
             tlb->tlb_entry[i].valid = true;
             return 0;
         }
-    }
-    
-    // Increment all ages
-    for (int i = 0; i < TLB_SIZE; i++) {
-        tlb->tlb_entry[i].age++;
     }
     
     // Find the oldest tlb
