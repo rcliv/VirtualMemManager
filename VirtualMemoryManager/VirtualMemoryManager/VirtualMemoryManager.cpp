@@ -19,6 +19,7 @@ using namespace std;
 #define NUM_FRAMES 256
 #define PAGE_SIZE 256
 #define TLB_SIZE 16
+#define LOGIC_ADDR_LIST_SIZE 1024
 
 
 
@@ -173,6 +174,8 @@ int logicAdrrLoader(string fileName, vector<laddress_t> * logicAddrList) {
 }
 
 int extractLogicAddr(laddress_t address, page_t * pageNum, offset_t * offset) {
+	*pageNum = address >> OFFSET_BITS;
+    *offset = address & OFFSET_MASK;   
     return 0;
 }
 
