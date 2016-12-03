@@ -66,10 +66,11 @@ typedef frame_t pageTable_t[NUM_PAGES];
 //Functions
 
 int logicAdrrLoader(string fileName, vector<laddress_t> * logicAddrList);
+int extractLogicAddr(laddress_t address, page_t * pageNum, offset_t * offset);
 int initPageTable(pageTable_t pageTable);
 int TLB_init(tlb *tlb);
 int searchTLB(page_t * pageNum, bool * isTlbHit, frame_t * frameNum, tlb * tlbSearch);
-int searchPageTable(bool * isTlbHit, page_t pageNum, bool * isPageFault, frame_t * frameNum, pageTable_t* page_Table);
+int searchPageTable(page_t pageNum, bool * isPageFault, frame_t * frameNum, pageTable_t* page_Table);
 // NEEDS TO ALSO PASS IN PHYSICAL MEMORY BUT I DONT KNOW WHAT THAT MEANS
 int handlePageFault(page_t pageNum, pageTable_t * pagetable, tlb * tlbUsed);
 int load_frame_to_physical_memory(page_t pageNum, const char *backingStoreFileName, physical_memory_t physical_memory, frame_t *frameNum);
@@ -115,11 +116,15 @@ int main()
     laddress_t logicAddress;
     paddress_t physicalAddress;
     
-    /* The TLB and page table */
-    tlb* tlb;
+    // The TLB and page table
+    tlb tlb;
     pageTable_t pageTable;
     
-    /* Simulated main memory */
+    // Flags to keep track of TLB and page faults
+    bool tlbHit;
+    bool pageFault;
+    
+    // Simulated main memory
     physical_memory_t physical_memory;
     
     // Address Lists
@@ -131,33 +136,62 @@ int main()
     const char backing_store_file_name[] = "BACKING_STORE";
     
     // Initialize the tlb and page table
-    TLB_init(tlb);
+    TLB_init(&tlb);
     initPageTable(pageTable);
     
     // Load the logical addresses from the test file
     int count = logicAdrrLoader(input_file, logicAddressList);
     
-    // Dont know what this is for vv lol
-    ifstream myfile("Text.txt");
-    int32_t a, masked;
-    int32_t mask;
-    mask = (1 << 16) - 1;
+    for(int i = 0; i < count; i++) {
+        // Get a logical address, its pageNum, and offset
+        extractLogicAddr(logicAddress, &pageNum, &offset);
+        
+        // Search the TLB
+        searchTLB(&pageNum, &tlbHit, &frameNum, &tlb);
+        
+        if(tlbHit == true) {
+            // createPhysicalAddress(frameNum, offset, &physicalAddress);
+        }
+        
+        // TLB miss
+        else {
+            searchPageTable(pageNum, &pageFault, &frameNum, &pageTable);
+            
+            // page hit
+            if (pageFault == false) {
+                // createPhysicalAddress(frameNum, offset, &physicalAddress);
+                
+                // TLB replacement methods
+                if (FIFO == true) {
+                    // TLB_replacement_FIFO(page_num, frame_num, &sys_tlb);
+                } else {
+                    // TLB_replacement_LRU(page_num, frame_num, &sys_tlb);
+                }
+            }
+            
+            // Page Fault
+            else {
+                // page_fault_handler(page_num, frame_num, &physical_memory, &page_table, &sys_tlb);
+                // createPhysicalAddress(frameNum, offset, &physicalAddress);
+            }
+        } // End of TLB Miss
+        
+        // Read one-byte value from the physical memory
+        // read_physical_memory(physical_address,physical_memory, &value);
+        
+        // Update the address-value list
+        // update_address_value_list(logic_address, physical_address, value, address_value_list);
+    } // End of logicAddrList
     
-    while (myfile >> a) {
-        printf("\n %d", a);
-        masked = a & mask;
-        printf("\nMasked: %d", masked);
-    }
-    myfile.close();
-    // ^^^^^^^^^^^^^^^^^^^^^^^^^
-
+    // Output the address-value list into an output file
+    // output_address_value_list(output_file, address_value_list);
+    
     return 0;
 }
 
 int logicAdrrLoader(string fileName, vector<laddress_t> * logicAddrList) {
     int count = 0;
     ifstream instream(fileName);
-    instream.open(fileName);
     if(instream.fail()){
         cout << "File failed to open.";
         exit(1);
@@ -174,8 +208,8 @@ int logicAdrrLoader(string fileName, vector<laddress_t> * logicAddrList) {
 }
 
 int extractLogicAddr(laddress_t address, page_t * pageNum, offset_t * offset) {
-	*pageNum = address >> OFFSET_BITS;
-    *offset = address & OFFSET_MASK;   
+    *pageNum = address >> OFFSET_BITS;
+    *offset = address & OFFSET_MASK;
     return 0;
 }
 
@@ -207,14 +241,12 @@ int searchTLB(page_t * pageNum, bool * isTlbHit, frame_t * frameNum, tlb * tlbSe
     return 0;
 }
 
-int searchPageTable(bool * isTlbHit, page_t pageNum, bool * isPageFault, frame_t * frameNum, pageTable_t* page_Table) {
-    if(!isTlbHit) {
-        if(*(page_Table + pageNum) == NULL) {
+int searchPageTable(page_t pageNum, bool * isPageFault, frame_t * frameNum, pageTable_t* page_Table) {
+    if(*(page_Table + pageNum) == NULL) {
             *isPageFault = true;
         }
         else {
             *frameNum = *page_Table[pageNum];
-        }
     }
     return 0;
 }
